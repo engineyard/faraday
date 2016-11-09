@@ -12,7 +12,6 @@ module Adapters
         b.adapter :test do |stubs|
           stubs.get('/hello') { [200, {'Content-Type' => 'text/html'}, 'hello'] }
           stubs.post('/ohai') { [200, {'Content-Type' => 'text/html'}, 'fred'] }
-          stubs.get('/ohno') { [200, {'Content-Type' => 'text/html'}, 'wilma'] }
           stubs.post('/ohyes') { [200, {'Content-Type' => 'text/html'}, 'pebbles'] }
           stubs.get('/rubbles') { [200, {'Content-Type' => 'application/json'}, rubbles] }
         end
@@ -25,23 +24,38 @@ module Adapters
       @logger.level = Logger::DEBUG
 
       @conn = conn(@logger)
-      @resp = @conn.get '/hello', nil, :accept => 'text/html'
     end
 
     def test_still_returns_output
-      assert_equal 'hello', @resp.body
+      resp = @conn.get '/hello', nil, :accept => 'text/html'
+      assert_equal 'hello', resp.body
     end
 
     def test_logs_method_and_url
+      @conn.get '/hello', nil, :accept => 'text/html'
       assert_match "get http:/hello", @io.string
     end
 
-    def test_logs_request_headers
+    def test_logs_request_headers_by_default
+      @conn.get '/hello', nil, :accept => 'text/html'
       assert_match %(Accept: "text/html), @io.string
     end
 
-    def test_logs_response_headers
+    def test_logs_response_headers_by_default
+      @conn.get '/hello', nil, :accept => 'text/html'
       assert_match %(Content-Type: "text/html), @io.string
+    end
+
+    def test_does_not_log_request_headers_if_option_is_false
+      app = conn(@logger, :headers => { :request => false })
+      app.get '/hello', nil, :accept => 'text/html'
+      refute_match %(Accept: "text/html), @io.string
+    end
+
+    def test_does_log_response_headers_if_option_is_false
+      app = conn(@logger, :headers => { :response => false })
+      app.get '/hello', nil, :accept => 'text/html'
+      refute_match %(Content-Type: "text/html), @io.string
     end
 
     def test_does_not_log_request_body_by_default
@@ -54,16 +68,18 @@ module Adapters
       refute_match %(fred), @io.string
     end
 
-    def test_log_request_body
+    def test_log_only_request_body
       app = conn(@logger, :bodies => { :request => true })
       app.post '/ohyes', 'name=Tamago', :accept => 'text/html'
       assert_match %(name=Tamago), @io.string
+      refute_match %(pebbles), @io.string
     end
 
-    def test_log_response_body
+    def test_log_only_response_body
       app = conn(@logger, :bodies => { :response => true })
-      app.get '/ohno', :accept => 'text/html'
-      assert_match %(wilma), @io.string
+      app.post '/ohyes', 'name=Hamachi', :accept => 'text/html'
+      assert_match %(pebbles), @io.string
+      refute_match %(name=Hamachi), @io.string
     end
 
     def test_log_request_and_response_body

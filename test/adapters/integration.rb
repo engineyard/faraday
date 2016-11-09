@@ -114,6 +114,11 @@ module Adapters
         assert_equal expected, get('ssl').body
       end
 
+      def test_GET_reason_phrase
+        response = get('echo')
+        assert_equal "OK", response.reason_phrase
+      end
+
       def test_POST_send_url_encoded_params
         assert_equal %(post {"name"=>"zack"}), post('echo', :name => 'zack').body
       end
@@ -213,8 +218,10 @@ module Adapters
           conn.get '/echo'
         end
 
-        unless self.class.ssl_mode? && self.class.jruby?
+        unless self.class.ssl_mode? && (self.class.jruby? ||
+            adapter == :em_http || adapter == :em_synchrony)
           # JRuby raises "End of file reached" which cannot be distinguished from a 407
+          # EM raises "connection closed by server" due to https://github.com/igrigorik/em-socksify/pull/19
           assert_equal %{407 "Proxy Authentication Required "}, err.message
         end
       end

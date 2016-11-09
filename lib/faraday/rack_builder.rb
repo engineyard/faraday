@@ -151,8 +151,9 @@ module Faraday
         lock!
         to_app(lambda { |env|
           response = Response.new
-          response.finish(env) unless env.parallel?
           env.response = response
+          response.finish(env) unless env.parallel?
+          response
         })
       end
     end
@@ -188,7 +189,7 @@ module Faraday
     # :ssl - Hash of options for configuring SSL requests.
     def build_env(connection, request)
       Env.new(request.method, request.body,
-        connection.build_exclusive_url(request.path, request.params),
+        connection.build_exclusive_url(request.path, request.params, request.options.params_encoder),
         request.options, request.headers, connection.ssl,
         connection.parallel_manager)
     end
