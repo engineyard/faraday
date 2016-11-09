@@ -41,6 +41,7 @@ module Faraday
           if req[:proxy]
             opts[:proxy] = {
               :host     => req[:proxy][:uri].host,
+              :hostname => req[:proxy][:uri].hostname,
               :port     => req[:proxy][:uri].port,
               :scheme   => req[:proxy][:uri].scheme,
               :user     => req[:proxy][:user],
@@ -56,7 +57,7 @@ module Faraday
           :headers => env[:request_headers],
           :body    => read_body(env)
 
-        save_response(env, resp.status.to_i, resp.body, resp.headers)
+        save_response(env, resp.status.to_i, resp.body, resp.headers, resp.reason_phrase)
 
         @app.call env
       rescue ::Excon::Errors::SocketError => err

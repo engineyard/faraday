@@ -14,7 +14,7 @@ require 'forwardable'
 #   conn.get '/'
 #
 module Faraday
-  VERSION = "0.9.1"
+  VERSION = "0.9.2"
 
   class << self
     # Public: Gets or sets the root path that Faraday is being loaded from.
@@ -92,6 +92,10 @@ module Faraday
 
     alias require_lib require_libs
 
+    def respond_to?(symbol, include_private = false)
+      default_connection.respond_to?(symbol, include_private) || super
+    end
+
   private
     # Internal: Proxies method calls on the Faraday constant to
     # #default_connection.
@@ -116,15 +120,6 @@ module Faraday
   # Returns a Faraday::ConnectionOptions.
   def self.default_connection_options
     @default_connection_options ||= ConnectionOptions.new
-  end
-
-  if (!defined?(RUBY_ENGINE) || "ruby" == RUBY_ENGINE) && RUBY_VERSION < '1.9'
-    begin
-      require 'system_timer'
-      Timer = SystemTimer
-    rescue LoadError
-      warn "Faraday: you may want to install system_timer for reliable timeouts"
-    end
   end
 
   unless const_defined? :Timer
@@ -243,26 +238,4 @@ module Faraday
   if !ENV["FARADAY_NO_AUTOLOAD"]
     require_lib 'autoload'
   end
-end
-
-# not pulling in active-support JUST for this method.  And I love this method.
-class Object
-  # The primary purpose of this method is to "tap into" a method chain,
-  # in order to perform operations on intermediate results within the chain.
-  #
-  # Examples
-  #
-  #   (1..10).tap { |x| puts "original: #{x.inspect}" }.to_a.
-  #     tap    { |x| puts "array: #{x.inspect}" }.
-  #     select { |x| x%2 == 0 }.
-  #     tap    { |x| puts "evens: #{x.inspect}" }.
-  #     map    { |x| x*x }.
-  #     tap    { |x| puts "squares: #{x.inspect}" }
-  #
-  # Yields self.
-  # Returns self.
-  def tap
-    yield(self)
-    self
-  end unless Object.respond_to?(:tap)
 end

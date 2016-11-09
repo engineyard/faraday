@@ -24,6 +24,13 @@ class EnvTest < Faraday::TestCase
     assert_equal 'http://sushi.com/api/foo.json?a=1', env.url.to_s
   end
 
+  def test_request_create_stores_uri_with_anchor
+    env = make_env do |req|
+      req.url 'foo.json?b=2&a=1#qqq'
+    end
+    assert_equal 'http://sushi.com/api/foo.json?a=1&b=2', env.url.to_s
+  end
+
   def test_request_create_stores_headers
     env = make_env do |req|
       req['Server'] = 'Faraday'
@@ -68,6 +75,17 @@ class EnvTest < Faraday::TestCase
   def test_request_create_stores_proxy_options
     env = make_env
     assert_equal 'proxy.com', env.request.proxy.host
+  end
+
+  def test_custom_members_are_retained
+    env = make_env
+    env[:foo] = "custom 1"
+    env[:bar] = :custom_2
+    env2 = Faraday::Env.from(env)
+    assert_equal "custom 1", env2[:foo]
+    assert_equal :custom_2,  env2[:bar]
+    env2[:baz] = "custom 3"
+    assert_nil env[:baz]
   end
 
   private
@@ -172,6 +190,23 @@ class ResponseTest < Faraday::TestCase
     response.finish(@env)
 
     assert_equal "YIKES", response.body
+  end
+
+  def test_response_body_is_available_during_on_complete
+    response = Faraday::Response.new
+    response.on_complete { |env| env[:body] = response.body.upcase }
+    response.finish(@env)
+
+    assert_equal "YIKES", response.body
+  end
+
+  def test_env_in_on_complete_is_identical_to_response_env
+    response = Faraday::Response.new
+    callback_env = nil
+    response.on_complete { |env| callback_env = env }
+    response.finish({})
+
+    assert_same response.env, callback_env
   end
 
   def test_not_success

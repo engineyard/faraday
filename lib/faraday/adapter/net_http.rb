@@ -17,6 +17,7 @@ module Faraday
         Errno::EHOSTUNREACH,
         Errno::EINVAL,
         Errno::ENETUNREACH,
+        Errno::EPIPE,
         Net::HTTPBadResponse,
         Net::HTTPHeaderSyntaxError,
         Net::ProtocolError,
@@ -46,7 +47,7 @@ module Faraday
             end
           end
 
-          save_response(env, http_response.code.to_i, http_response.body || '') do |response_headers|
+          save_response(env, http_response.code.to_i, http_response.body || '', nil, http_response.message) do |response_headers|
             http_response.each_header do |key, value|
               response_headers[key] = value
             end
@@ -54,7 +55,7 @@ module Faraday
         end
 
         @app.call env
-      rescue Timeout::Error => err
+      rescue Timeout::Error, Errno::ETIMEDOUT => err
         raise Faraday::Error::TimeoutError, err
       end
 

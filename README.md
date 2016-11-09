@@ -17,6 +17,10 @@ Faraday supports these adapters:
 It also includes a Rack adapter for hitting loaded Rack applications through
 Rack::Test, and a Test adapter for stubbing requests by hand.
 
+## API documentation
+
+Available at [rubydoc.info](http://www.rubydoc.info/gems/faraday).
+
 ## Usage
 
 ```ruby
@@ -64,6 +68,32 @@ stack and default adapter (see [Faraday::RackBuilder#initialize](https://github.
 ```ruby
 response = Faraday.get 'http://sushi.com/nigiri/sake.json'
 ```
+
+### Changing how parameters are serialized
+
+Sometimes you need to send the same URL parameter multiple times with different
+values. This requires manually setting the parameter encoder and can be done on
+either per-connection or per-request basis.
+
+```ruby
+# per-connection setting
+conn = Faraday.new :request => { :params_encoder => Faraday::FlatParamsEncoder }
+
+conn.get do |req|
+  # per-request setting:
+  # req.options.params_encoder = my_encoder
+  req.params['roll'] = ['california', 'philadelphia']
+end
+# GET 'http://sushi.com?roll=california&roll=philadelphia'
+```
+
+The value of Faraday `params_encoder` can be any object that responds to:
+
+* `encode(hash) #=> String`
+* `decode(string) #=> Hash`
+
+The encoder will affect both how query strings are processed and how POST bodies
+get serialized. The default encoder is Faraday::NestedParamsEncoder.
 
 ## Advanced middleware usage
 
@@ -184,13 +214,9 @@ stubs.verify_stubbed_calls
 This library aims to support and is [tested against][travis] the following Ruby
 implementations:
 
-* MRI 1.8.7
-* MRI 1.9.2
-* MRI 1.9.3
-* MRI 2.0.0
-* MRI 2.1.0
-* [JRuby][]
-* [Rubinius][]
+* Ruby 1.9.3+
+* [JRuby][] 1.7+
+* [Rubinius][] 2+
 
 If something doesn't work on one of these Ruby versions, it's a bug.
 
@@ -212,10 +238,10 @@ See [LICENSE][] for details.
 
 [net_http]:     http://ruby-doc.org/stdlib/libdoc/net/http/rdoc/Net/HTTP.html
 [persistent]:   https://github.com/drbrain/net-http-persistent
-[travis]:       http://travis-ci.org/lostisland/faraday
-[excon]:        https://github.com/geemus/excon#readme
+[travis]:       https://travis-ci.org/lostisland/faraday
+[excon]:        https://github.com/excon/excon#readme
 [typhoeus]:     https://github.com/typhoeus/typhoeus#readme
-[patron]:       http://toland.github.com/patron/
+[patron]:       http://toland.github.io/patron/
 [eventmachine]: https://github.com/igrigorik/em-http-request#readme
 [httpclient]:   https://github.com/nahi/httpclient
 [jruby]:        http://jruby.org/

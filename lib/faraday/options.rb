@@ -252,7 +252,8 @@ module Faraday
   end
 
   class Env < Options.new(:method, :body, :url, :request, :request_headers,
-    :ssl, :parallel_manager, :params, :response, :response_headers, :status, :request_body)
+    :ssl, :parallel_manager, :params, :response, :response_headers, :status, :request_body,
+    :reason_phrase)
 
     ContentLength = 'Content-Length'.freeze
     StatusesWithoutBody = Set.new [204, 304]
@@ -268,6 +269,15 @@ module Faraday
     extend Forwardable
 
     def_delegators :request, :params_encoder
+
+    # Public
+    def self.from(value)
+      env = super(value)
+      if value.respond_to?(:custom_members)
+        env.custom_members.update(value.custom_members)
+      end
+      env
+    end
 
     # Public
     def [](key)
